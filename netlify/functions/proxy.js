@@ -1,26 +1,16 @@
 exports.handler = async (event) => {
-  // Ambik dari querystring parameter instead
   const params = event.queryStringParameters || {};
   let targetUrl = params.url;
 
-  // Kalau takde query param, cuba dari path
   if (!targetUrl) {
-    const pathParts = event.rawUrl.split('/api/proxy/');
-    if (pathParts.length > 1) {
-      targetUrl = pathParts[1];
-    }
+    const match = event.rawUrl.match(/\/api\/proxy\/(https?:\/\/.+)/);
+    if (match) targetUrl = match[1];
   }
 
   if (!targetUrl || !targetUrl.startsWith('http')) {
     return {
       statusCode: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        error: 'Invalid URL',
-        rawUrl: event.rawUrl,
-        path: event.path,
-        params: params
-      }),
+      body: 'Invalid URL: ' + event.rawUrl,
     };
   }
 
@@ -28,19 +18,27 @@ exports.handler = async (event) => {
     const response = await fetch(targetUrl, {
       method: event.httpMethod,
       headers: {
-        'User-Agent': 'Mozilla/5.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': '*/*',
+        'Referer': 'https://ucdn.starhubgo.com',
       },
     });
 
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    const body = await response.text();
+    let body = await response.text();
+
+    // Rewrite URLs dalam MPD supaya guna proxy kita
+    if (contentType.includes('dash') || targetUrl.endsWith('.mpd')) {
+      const proxyBase = 'https://starhub-01.netlify.app/api/proxy/';
+      body = body.replace(/https:\/\/ucdn\.starhubgo\.com/g, proxyBase + 'https://ucdn.starhubgo.com');
+    }
 
     return {
       statusCode: response.status,
       headers: {
         'Content-Type': contentType,
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
       },
       body: body,
     };

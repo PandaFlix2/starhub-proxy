@@ -1,13 +1,10 @@
 exports.handler = async (event) => {
-  const path = event.path.replace('/proxy/', '');
-  
-  let targetUrl = '';
-  if (path.startsWith('starhub/')) {
-    targetUrl = 'https://ucdn.starhubgo.com/' + path.replace('starhub/', '');
-  } else if (path.startsWith('poster/')) {
-    targetUrl = 'https://poster.starhubgo.com/' + path.replace('poster/', '');
-  } else {
-    return { statusCode: 400, body: 'Invalid proxy path' };
+  // Extract full URL after /api/proxy/
+  const fullPath = event.path; // /.netlify/functions/proxy/https://ucdn...
+  const targetUrl = fullPath.replace('/.netlify/functions/proxy/', '');
+
+  if (!targetUrl.startsWith('http')) {
+    return { statusCode: 400, body: 'Invalid URL' };
   }
 
   try {
@@ -16,6 +13,8 @@ exports.handler = async (event) => {
       headers: {
         'User-Agent': 'Mozilla/5.0',
         'Accept': '*/*',
+        'Origin': 'https://ucdn.starhubgo.com',
+        'Referer': 'https://ucdn.starhubgo.com',
       },
     });
 

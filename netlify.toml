@@ -1,0 +1,11 @@
+[[redirects]]
+  from = "/proxy/starhub/*"
+  to = "https://ucdn.starhubgo.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/proxy/poster/*"
+  to = "https://poster.starhubgo.com/:splat"
+  status = 200
+  force = true
